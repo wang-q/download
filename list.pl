@@ -278,7 +278,7 @@ sub walking {
     return if $url =~ /\.(rar|7z|bz|zip|gz|xz|tgz)$/i;
     return if $url =~ /\.(gif|jpg|jpeg|png)$/i;
     return if $url =~ /\.(md5|txt|sql)$/i;
-    return if $url =~ /\.(2bit|lav|axt|fa|fq|fasta|fastq)$/i;
+    return if $url =~ /\.(2bit|lav|axt|fa|fq|fasta|fastq|fas)$/i;
     return if $url =~ /\.(bb|nh|mod)$/i;
     return if $url =~ /$avoid_regex/i;
 
