@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use autodie;
 
 package Urlcheck;
 use Moose;
@@ -52,7 +53,6 @@ sub check_parent {
             if $self->verbose;
         return 0;
     }
-
 }
 
 # doesn't have query and frag
@@ -174,9 +174,7 @@ sub convert_all {
 1;
 
 package main;
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw(HelpMessage);
 use YAML qw(Dump Load DumpFile LoadFile);
 
 use URI;
@@ -189,30 +187,37 @@ use File::Spec;
 #----------------------------------------------------------#
 # GetOpt section
 #----------------------------------------------------------#
-my $main_url;
 
-my $working_dir = '.';
-my $avoid_regex = '(affy|encode|multiz|phastCons|phyloP)';
+=head1 NAME
 
-my $not_check_parent = 0;
+list.pl - Walking through a http site
 
-my $man  = 0;
-my $help = 0;
+=head1 SYNOPSIS
+
+    perl list.pl [options]
+      Options:
+        --help          -?          brief help message
+        --url           -u  STR     url of http site
+        --dir           -d  STR     default is [.]
+        --regex         -r  STR     regex to avoid url
+        --ncp                       Not check parent
+
+    perl list.pl -u http://mus.well.ox.ac.uk/19genomes/fasta/
+
+Don't include index.html in URL.
+
+=cut
 
 # store command line before GetOptions
 my $cmdline = join " ", ( $0, @ARGV );
 
 GetOptions(
-    'help|?'    => \$help,
-    'man'       => \$man,
-    'u|url=s'   => \$main_url,
-    'd|dir=s'   => \$working_dir,
-    'r|regex=s' => \$avoid_regex,
-    'ncp'       => \$not_check_parent,
-) or pod2usage(2);
-
-pod2usage(1) if $help;
-pod2usage( -exitstatus => 0, -verbose => 2 ) if $man;
+    'help|?'  => sub { HelpMessage(0) },
+    'url|u=s' => \( my $main_url ),
+    'dir|d=s'   => \( my $working_dir      = '.' ),
+    'regex|r=s' => \( my $avoid_regex      = '(affy|encode|multiz|phastCons|phyloP)' ),
+    'ncp'       => \( my $not_check_parent = 0 ),
+) or HelpMessage(1);
 
 #----------------------------------------------------------#
 # init
@@ -300,8 +305,7 @@ sub walking {
 
 sub is_html {
     my $url = shift;
-    my ( $content_type, $document_length, $modified_time, $expires, $server )
-        = head($url);
+    my ( $content_type, $document_length, $modified_time, $expires, $server ) = head($url);
     return 1 if !defined $content_type;
     return $content_type =~ /html/;
 }
@@ -316,12 +320,4 @@ sub get_page_obj {
     return $mech;
 }
 
-1;
-
 __END__
-
-=head1 SYNOPSIS
-
-perl list.pl -u http://mus.well.ox.ac.uk/19genomes/fasta/
-
-Don't include index.html in URL.

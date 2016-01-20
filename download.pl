@@ -3,41 +3,44 @@ use strict;
 use warnings;
 use autodie;
 
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw(HelpMessage);
 use YAML qw(Dump Load DumpFile LoadFile);
 
+use Path::Tiny;
 use LWP::Simple;
 use LWP::UserAgent;
-use Path::Class;
-use File::Path qw(make_path);
-
 use MCE;
 
 #----------------------------------------------------------#
 # GetOpt section
 #----------------------------------------------------------#
-# running options
-my $file_yaml;
-my $path_regex = '.';
-my $aria2;    # generate a aria2 input file
 
-my $parallel = 4;    # parallel lwp download
+=head1 NAME
 
-my $man  = 0;
-my $help = 0;
+download.pl - Download with LWP or generate a aria2 input file
+
+=head1 SYNOPSIS
+
+    perl download.pl [options]
+      Options:
+        --help          -?          brief help message
+        --input         -i  STR     YAML created by list.pl
+        --regex         -r  STR     regex filter what to download, default is [.]
+        --aria2         -a          generate a aria2 input file
+        --parallel          INT     parallel LWP download
+
+    perl download.pl -i 19genomes_fasta.yml -a
+    aria2c -x 12 -s 4 -i 19genomes_fasta.yml.txt
+
+=cut
 
 GetOptions(
-    'help|?'     => \$help,
-    'man'        => \$man,
-    'i|input=s'  => \$file_yaml,
-    'r|regex=s'  => \$path_regex,
-    'a|aria2'    => \$aria2,
-    'parallel=i' => \$parallel,
-) or pod2usage(2);
-
-pod2usage(1) if $help;
-pod2usage( -exitstatus => 0, -verbose => 2 ) if $man;
+    'help|?'    => sub { HelpMessage(0) },
+    'input|i=s' => \( my $file_yaml ),
+    'regex|r=s'  => \( my $path_regex = "." ),
+    'aria2|a'    => \( my $aria2 ),
+    'parallel=i' => \( my $parallel   = 4 ),
+) or HelpMessage(1);
 
 #----------------------------------------------------------#
 # init
@@ -50,17 +53,17 @@ my $url_path  = $dispatch->{url_path};
 # create dirs
 #----------------------------#
 # Files will locate in the same dir as the yaml file.
-$file_yaml = file($file_yaml)->absolute;
-my $base_dir = $file_yaml->dir->stringify;
+$file_yaml = path($file_yaml)->absolute;
+my $base_dir = $file_yaml->parent->stringify;
 for my $dir ( sort keys %{$dir_to_mk} ) {
-    $dir = dir( $base_dir, $dir )->stringify;
-    make_path($dir) unless -e $dir;
+    $dir = path( $base_dir, $dir )->stringify;
+    path($dir)->mkpath;
 }
 
 my $aria2_file;
 if ($aria2) {
     $aria2_file = $file_yaml . ".txt";
-    unlink $aria2_file if -e $aria2_file;
+    path($aria2_file)->remove;
 }
 
 #----------------------------#
@@ -71,7 +74,7 @@ for my $url ( sort keys %{$url_path} ) {
     my $path = $url_path->{$url};
     next unless $path =~ /$path_regex/;
 
-    $path = file( $base_dir, $url_path->{$url} )->stringify;
+    $path = path( $base_dir, $url_path->{$url} )->stringify;
     push @jobs, [ $url, $path ];
 }
 
@@ -83,8 +86,8 @@ if ($aria2) {    # aria2
         my $str;
         $str .= "$url\n";
 
-        my $file = file($path);
-        $str .= "  dir=" . $file->dir->stringify . "\n";
+        my $file = path($path);
+        $str .= "  dir=" . $file->parent->stringify . "\n";
         $str .= "  out=" . $file->basename . "\n";
 
         open my $fh, '>>', $aria2_file;
@@ -123,10 +126,3 @@ sub get_file {
 }
 
 __END__
-
-=head1 SYNOPSIS
-
-perl download.pl -i _goldenPath_sacCer3_multiz7way_.yml -r gz
-
->perl download.pl -i 19genomes_fasta.yml -a
->d:\tools\bin\aria2c -x 12 -s 4 -i D:\wq\Scripts\tool\download\19genomes_fasta.yml.txt
