@@ -30,7 +30,7 @@ download.pl - Download with LWP or generate a aria2 input file
         --parallel          INT     parallel LWP download
 
     perl download.pl -i 19genomes_fasta.yml -a
-    aria2c -x 12 -s 4 -i 19genomes_fasta.yml.txt
+    aria2c -x 9 -s 3 -c -i 19genomes_fasta.yml.txt
 
 =cut
 
@@ -96,7 +96,7 @@ if ($aria2) {    # aria2
     }
 
     print "\nRun something like the following command to start downloading.\n";
-    print "aria2c -x 12 -s 4 -i $aria2_file\n";
+    print "aria2c -x 9 -s 3 -c -i $aria2_file\n";
 }
 else {    # LWP
     my $mce = MCE->new( chunk_size => 1, max_workers => $parallel, );
